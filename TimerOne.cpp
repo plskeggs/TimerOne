@@ -17,6 +17,7 @@
  * Modiied 7:26 PM Sunday, October 09, 2011 by Lex Talionis
  *  - renamed start() to resume() to reflect it's actual role
  *  - renamed startBottom() to start(). This breaks some old code that expects start to continue counting where it left off
+ * Modified Sept 2012 by Pete Skeggs to add software-assisted PWM to any pin
  *
  *  This program is free software: you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
