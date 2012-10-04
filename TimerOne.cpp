@@ -37,28 +37,17 @@
 #define TIMERONE_cpp
 
 #include "TimerOne.h"
-#include "Arduino.h"
 
 TimerOne Timer1;              // preinstatiate
 
 ISR(TIMER1_OVF_vect)          // interrupt service routine that wraps a user defined function supplied by attachInterrupt
 {
-  if (Timer1.isrCallback)
-    Timer1.isrCallback();
-  if (Timer1.enableSwPwm)
-    digitalWrite(Timer1.outputPin, 1);
+  Timer1.isrCallback();
 }
 
-ISR(TIMER1_COMPA_vect)
-{
-  if (Timer1.enableSwPwm)
-    digitalWrite(Timer1.outputPin, 0);
-}
 
 void TimerOne::initialize(long microseconds)
 {
-  isrCallback = NULL;
-  enableSwPwm = false;
   TCCR1A = 0;                 // clear control register A 
   TCCR1B = _BV(WGM13);        // set mode 8: phase and frequency correct pwm, stop the timer
   setPeriod(microseconds);
@@ -94,15 +83,8 @@ void TimerOne::setPwmDuty(char pin, int duty)
   
   oldSREG = SREG;
   cli();
-  enableSwPwm = false;
   if(pin == 1 || pin == 9)       OCR1A = dutyCycle;
   else if(pin == 2 || pin == 10) OCR1B = dutyCycle;
-  else {
-	OCR1A = dutyCycle; // PLS: allow for any pin
-	outputPin = pin;
-	TIMSK1 = _BV(TOIE1) | _BV(OCIE1A); // at overflow, turn on pin; at output compare A, turn off
-	enableSwPwm = true;
-  }
   SREG = oldSREG;
 }
 
@@ -126,17 +108,6 @@ void TimerOne::disablePwm(char pin)
 {
   if(pin == 1 || pin == 9)       TCCR1A &= ~_BV(COM1A1);   // clear the bit that enables pwm on PB1
   else if(pin == 2 || pin == 10) TCCR1A &= ~_BV(COM1B1);   // clear the bit that enables pwm on PB2
-  else { // PLS: turn off interrupt for handling any other pin
-    oldSREG = SREG;
-    cli();
-    TIMSK1 &= ~_BV(OCIE1A);
-	if (!isrCallback)
-	  TIMSK1 &= ~_BV(TOIE1);
-	outputPin = pin;
-	digitalWrite(pin, 0); // turn off output
-    enableSwPwm = false;
-    SREG = oldSREG;
-  }
 }
 
 void TimerOne::attachInterrupt(void (*isr)(), long microseconds)
@@ -151,7 +122,6 @@ void TimerOne::attachInterrupt(void (*isr)(), long microseconds)
 
 void TimerOne::detachInterrupt()
 {
-  isrCallback = NULL; // PLS: ensure that if the user calls pwm() with a non-standard pin, we don't call the old isrCallback now
   TIMSK1 &= ~_BV(TOIE1);                                   // clears the timer overflow interrupt enable bit 
 }
 
