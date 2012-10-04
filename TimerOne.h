@@ -49,8 +49,6 @@ class TimerOne
     unsigned int pwmPeriod;
     unsigned char clockSelectBits;
 	char oldSREG;					// To hold Status Register while ints disabled
-	unsigned int outputPin; // PLS: use this for doing pwm to any pin
-	bool enableSwPwm;       // PLS: set true when we're doing software-assisted pwm
 
     // methods
     void initialize(long microseconds=1000000);
