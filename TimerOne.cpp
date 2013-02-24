@@ -40,6 +40,8 @@
 #include "TimerOne.h"
 #include "Arduino.h"
 
+#define FAST_PWM // PETE: use this when using non-timer pins
+
 TimerOne Timer1;              // preinstatiate
 
 ISR(TIMER1_OVF_vect)          // interrupt service routine that wraps a user defined function supplied by attachInterrupt
@@ -60,8 +62,13 @@ void TimerOne::initialize(long microseconds)
 {
   isrCallback = NULL;
   enableSwPwm = false;
-  TCCR1A = 0;                 // clear control register A 
-  TCCR1B = _BV(WGM13);        // set mode 8: phase and frequency correct pwm, stop the timer
+#if defined(FAST_PWM)
+  TCCR1A = _BV(WGM11);                 // set mode 14: fast pwm, 10 bit, 
+  TCCR1B = _BV(WGM13) | _BV(WGM12);    // ICR1 is TOP
+#else
+  TCCR1A = 0;                          // clear control register A 
+  TCCR1B = _BV(WGM13);                 // set mode 8: phase and frequency correct pwm, stop the timer
+#endif
   setPeriod(microseconds);
 }
 
@@ -99,7 +106,9 @@ void TimerOne::setPwmDuty(char pin, int duty)
   if(pin == 1 || pin == 9)       OCR1A = dutyCycle;
   else if(pin == 2 || pin == 10) OCR1B = dutyCycle;
   else {
-	OCR1A = dutyCycle; // PLS: allow for any pin
+   if (dutyCycle >= pwmPeriod)
+     dutyCycle = pwmPeriod - 1; // avoid setting OCR1A to TOP
+	OCR1A = dutyCycle;           // PLS: allow for any pin
 	outputPin = pin;
 	TIMSK1 = _BV(TOIE1) | _BV(OCIE1A); // at overflow, turn on pin; at output compare A, turn off
 	enableSwPwm = true;
